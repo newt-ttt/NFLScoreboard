@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+logos/dithered/
+.playwright-mcp/
+*.png
+!logos/*.png
+.claude/

@@ -724,15 +724,15 @@ function renderSingleGame(g, statKeys, statLabels) {
     const rows = statKeys.map(function(key) {
       return '<tr>' +
         '<td style="text-align:right;padding:2px 12px;font-size:14px;font-weight:bold">' + (awayStats[key] || '-') + '</td>' +
-        '<td style="text-align:center;padding:2px 12px;font-size:13px;color:var(--red)">' + (statLabels[key] || key) + '</td>' +
+        '<td style="text-align:center;padding:2px 12px;font-size:13px;font-weight:bold;color:var(--red)">' + (statLabels[key] || key) + '</td>' +
         '<td style="text-align:left;padding:2px 12px;font-size:14px;font-weight:bold">' + (homeStats[key] || '-') + '</td>' +
       '</tr>';
     }).join('');
     statsHtml = '<table style="width:100%;border-collapse:collapse;margin-top:8px">' +
       '<tr style="border-bottom:2px solid var(--black)">' +
-        '<th style="text-align:right;padding:2px 12px;font-size:14px;font-weight:bold">' + g.away_team + '</th>' +
+        '<th style="text-align:right;padding:2px 12px;font-size:18px;font-weight:bold">' + g.away_team + '</th>' +
         '<th style="text-align:center;padding:2px 12px;font-size:12px"></th>' +
-        '<th style="text-align:left;padding:2px 12px;font-size:14px;font-weight:bold">' + g.home_team + '</th>' +
+        '<th style="text-align:left;padding:2px 12px;font-size:18px;font-weight:bold">' + g.home_team + '</th>' +
       '</tr>' + rows + '</table>';
   }
 

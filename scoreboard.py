@@ -49,32 +49,47 @@ STAT_LABELS = {
 
 _today = datetime.now().strftime("%Y-%m-%d")
 
+MOCK_WEEK_LABEL = "Week 14"
+
 MOCK_GAMES = [
     {"id": "m1",  "away_team": "KC",  "home_team": "BUF", "away_score": "21", "home_score": "17",
+     "away_record": "11-2", "home_record": "10-3",
      "status": "Q3 8:42", "state": "in", "date": _today, "possession": "KC", "down_distance": "2nd & 7", "spot": "BUF 35"},
     {"id": "m2",  "away_team": "DAL", "home_team": "PHI", "away_score": "10", "home_score": "14",
+     "away_record": "7-6", "home_record": "10-3",
      "status": "Q2 2:01", "state": "in", "date": _today, "possession": "PHI", "down_distance": "1st & 10", "spot": "PHI 25"},
     {"id": "m3",  "away_team": "SF",  "home_team": "SEA", "away_score": "27", "home_score": "24",
+     "away_record": "9-4", "home_record": "7-6",
      "status": "Final", "state": "post", "date": _today},
     {"id": "m4",  "away_team": "BAL", "home_team": "CIN", "away_score": "31", "home_score": "28",
+     "away_record": "11-2", "home_record": "5-8",
      "status": "Q4 0:34", "state": "in", "date": _today, "possession": "CIN", "down_distance": "3rd & 8", "spot": "BAL 42"},
     {"id": "m5",  "away_team": "MIA", "home_team": "NE",  "away_score": "3",  "home_score": "7",
+     "away_record": "8-5", "home_record": "3-10",
      "status": "Q1 11:20", "state": "in", "date": _today, "possession": "MIA", "down_distance": "3rd & 2", "spot": "NE 48"},
     {"id": "m6",  "away_team": "DEN", "home_team": "LV",  "away_score": "17", "home_score": "20",
+     "away_record": "7-6", "home_record": "5-8",
      "status": "Final/OT", "state": "post", "date": _today},
     {"id": "m7",  "away_team": "NYG", "home_team": "WAS", "away_score": "14", "home_score": "14",
+     "away_record": "2-11", "home_record": "9-4",
      "status": "Q2 0:12", "state": "in", "date": _today, "possession": "WAS", "down_distance": "2nd & 3", "spot": "NYG 40"},
     {"id": "m8",  "away_team": "LAR", "home_team": "ARI", "away_score": "23", "home_score": "20",
+     "away_record": "6-6-1", "home_record": "6-7",
      "status": "Final", "state": "post", "date": _today},
     {"id": "m9",  "away_team": "TB",  "home_team": "NO",  "away_score": "7",  "home_score": "3",
+     "away_record": "7-6", "home_record": "4-9",
      "status": "Q1 5:44", "state": "in", "date": _today, "possession": "TB", "down_distance": "1st & 10", "spot": "TB 30"},
     {"id": "m10", "away_team": "PIT", "home_team": "CLE", "away_score": "13", "home_score": "10",
+     "away_record": "8-5", "home_record": "3-10",
      "status": "Halftime", "state": "in", "date": _today},
     {"id": "m11", "away_team": "JAX", "home_team": "TEN", "away_score": "6",  "home_score": "9",
+     "away_record": "3-10", "home_record": "4-9",
      "status": "Q3 12:00", "state": "in", "date": _today, "possession": "TEN", "down_distance": "3rd & 1", "spot": "JAX 49"},
     {"id": "m12", "away_team": "LAC", "home_team": "HOU", "away_score": "0",  "home_score": "0",
+     "away_record": "8-5", "home_record": "8-5",
      "status": "8:20 PM", "state": "pre", "date": _today},
     {"id": "m13", "away_team": "GB",  "home_team": "CHI", "away_score": "0",  "home_score": "0",
+     "away_record": "9-4", "home_record": "4-9",
      "status": "Mon 8:15PM", "state": "pre", "date": "2099-01-01"},
 ]
 
@@ -163,6 +178,20 @@ class MessageAnnouncer:
 announcer = MessageAnnouncer()
 
 
+def parse_week_label(data):
+    """Extract a week label like 'Week 5' or 'Super Bowl' from ESPN API response."""
+    season_type = data.get("season", {}).get("type", 2)
+    week_num = data.get("week", {}).get("number", 0)
+    if season_type == 1:
+        return f"Preseason Week {week_num}"
+    elif season_type == 2:
+        return f"Week {week_num}"
+    elif season_type == 3:
+        postseason_names = {1: "Wild Card", 2: "Divisional", 3: "Conference Championships", 5: "Super Bowl"}
+        return postseason_names.get(week_num, f"Postseason Week {week_num}")
+    return f"Week {week_num}"
+
+
 def parse_games(data):
     """Extract game info from ESPN API response."""
     games = []
@@ -179,6 +208,12 @@ def parse_games(data):
         # Extract date (YYYY-MM-DD) from the event's UTC timestamp
         event_date = event.get("date", "")[:10]
 
+        # Extract overall records
+        away_records = away.get("records", [])
+        home_records = home.get("records", [])
+        away_record = away_records[0]["summary"] if away_records else ""
+        home_record = home_records[0]["summary"] if home_records else ""
+
         game = {
             "id": event["id"],
             "away_team": away["team"]["abbreviation"],
@@ -187,6 +222,8 @@ def parse_games(data):
             "home_name": home["team"]["shortDisplayName"],
             "away_score": away["score"],
             "home_score": home["score"],
+            "away_record": away_record,
+            "home_record": home_record,
             "away_logo": away["team"]["logo"],
             "home_logo": home["team"]["logo"],
             "status": status_detail,
@@ -314,6 +351,7 @@ def fetch_scores():
         try:
             if USE_MOCK:
                 games = list(MOCK_GAMES)
+                week_label = MOCK_WEEK_LABEL
                 # Apply MOCK_PRESET to limit game count for testing
                 if MOCK_PRESET == "single":
                     games = games[:1]
@@ -325,6 +363,7 @@ def fetch_scores():
                 resp = requests.get(ESPN_URL, timeout=10)
                 resp.raise_for_status()
                 data = resp.json()
+                week_label = parse_week_label(data)
                 games = parse_games(data)
 
             games = filter_and_sort_games(games)
@@ -353,6 +392,7 @@ def fetch_scores():
 
             payload = {
                 "preset": preset,
+                "week_label": week_label,
                 "stat_keys": stat_keys,
                 "stat_labels": stat_labels,
                 "games": games,
@@ -532,7 +572,7 @@ TEMPLATE = """\
 </head>
 <body>
 <div id="eink">
-  <div id="header">NFL SCOREBOARD</div>
+  <div id="header">NFL SCOREBOARD &mdash; <span id="week-label"></span></div>
   <div id="games"><div class="no-games">Connecting...</div></div>
   <div id="footer">Updated: <span id="updated">--</span></div>
 </div>
@@ -540,6 +580,7 @@ TEMPLATE = """\
 <script>
 const gamesEl = document.getElementById("games");
 const updatedEl = document.getElementById("updated");
+const weekLabelEl = document.getElementById("week-label");
 const GAMES_AREA_HEIGHT = 432; /* 480 - 24 header - 24 footer */
 
 function renderSundayGame(g, cardHeight) {
@@ -554,6 +595,9 @@ function renderSundayGame(g, cardHeight) {
   const separatorFont = Math.max(10, Math.min(16, Math.floor(cardHeight * 0.45)));
   const dotFont = Math.max(6, Math.min(8, Math.floor(cardHeight * 0.25)));
   const situationFont = Math.max(7, Math.min(10, Math.floor(cardHeight * 0.3)));
+  const recordFont = Math.max(6, Math.min(9, Math.floor(cardHeight * 0.25)));
+  const awayRec = g.away_record ? '<span style="font-size:' + recordFont + 'px;font-weight:normal;margin:0 2px">(' + g.away_record + ')</span>' : '';
+  const homeRec = g.home_record ? '<span style="font-size:' + recordFont + 'px;font-weight:normal;margin:0 2px">(' + g.home_record + ')</span>' : '';
 
   const awayPoss = isLive && g.possession === g.away_team
     ? '<span class="possession-dot" style="font-size:' + dotFont + 'px">&#9679;</span>' : '';
@@ -571,6 +615,7 @@ function renderSundayGame(g, cardHeight) {
       '<img class="team-logo" src="/logo/' + g.away_team.toLowerCase() + '?size=' + logoSize + '" alt=""' +
         ' style="width:' + logoSize + 'px;height:' + logoSize + 'px">' +
       '<span class="team-abbr" style="font-size:' + abbrFont + 'px;min-width:' + (abbrFont * 2.2) + 'px">' + g.away_team + '</span>' +
+      awayRec +
       awayPoss +
     '</div>' +
     '<div class="score-block">' +
@@ -583,6 +628,7 @@ function renderSundayGame(g, cardHeight) {
       '<span class="team-abbr" style="font-size:' + abbrFont + 'px;min-width:' + (abbrFont * 2.2) + 'px">' + g.home_team + '</span>' +
       '<img class="team-logo" src="/logo/' + g.home_team.toLowerCase() + '?size=' + logoSize + '" alt=""' +
         ' style="width:' + logoSize + 'px;height:' + logoSize + 'px">' +
+      homeRec +
     '</div>' +
     '<div class="status-block" style="font-size:' + statusFont + 'px">' +
       '<span class="' + statusClass + '">' + g.status + '</span>' +
@@ -612,7 +658,10 @@ function renderPlayoff3Game(g) {
       '<div style="display:flex;align-items:center;gap:8px">' +
         '<img class="team-logo" src="/logo/' + g.away_team.toLowerCase() + '?size=48" alt=""' +
           ' style="width:48px;height:48px">' +
-        '<span style="font-size:20px;font-weight:bold;min-width:44px;text-align:right">' + g.away_team + '</span>' +
+        '<div style="text-align:right">' +
+          '<span style="font-size:20px;font-weight:bold">' + g.away_team + '</span>' +
+          (g.away_record ? '<div style="font-size:10px">' + g.away_record + '</div>' : '') +
+        '</div>' +
         awayPoss +
       '</div>' +
       '<div style="display:flex;align-items:center;gap:8px">' +
@@ -622,7 +671,10 @@ function renderPlayoff3Game(g) {
       '</div>' +
       '<div style="display:flex;align-items:center;gap:8px">' +
         homePoss +
-        '<span style="font-size:20px;font-weight:bold;min-width:44px;text-align:left">' + g.home_team + '</span>' +
+        '<div style="text-align:left">' +
+          '<span style="font-size:20px;font-weight:bold">' + g.home_team + '</span>' +
+          (g.home_record ? '<div style="font-size:10px">' + g.home_record + '</div>' : '') +
+        '</div>' +
         '<img class="team-logo" src="/logo/' + g.home_team.toLowerCase() + '?size=48" alt=""' +
           ' style="width:48px;height:48px">' +
       '</div>' +
@@ -676,7 +728,10 @@ function renderPlayoff2Game(g, statKeys, statLabels) {
       '<div style="display:flex;align-items:center;gap:8px">' +
         '<img class="team-logo" src="/logo/' + g.away_team.toLowerCase() + '?size=64" alt=""' +
           ' style="width:64px;height:64px">' +
-        '<span style="font-size:24px;font-weight:bold;min-width:50px;text-align:right">' + g.away_team + '</span>' +
+        '<div style="text-align:right">' +
+          '<span style="font-size:24px;font-weight:bold">' + g.away_team + '</span>' +
+          (g.away_record ? '<div style="font-size:11px">' + g.away_record + '</div>' : '') +
+        '</div>' +
         awayPoss +
       '</div>' +
       '<div style="display:flex;align-items:center;gap:8px">' +
@@ -686,7 +741,10 @@ function renderPlayoff2Game(g, statKeys, statLabels) {
       '</div>' +
       '<div style="display:flex;align-items:center;gap:8px">' +
         homePoss +
-        '<span style="font-size:24px;font-weight:bold;min-width:50px;text-align:left">' + g.home_team + '</span>' +
+        '<div style="text-align:left">' +
+          '<span style="font-size:24px;font-weight:bold">' + g.home_team + '</span>' +
+          (g.home_record ? '<div style="font-size:11px">' + g.home_record + '</div>' : '') +
+        '</div>' +
         '<img class="team-logo" src="/logo/' + g.home_team.toLowerCase() + '?size=64" alt=""' +
           ' style="width:64px;height:64px">' +
       '</div>' +
@@ -741,7 +799,10 @@ function renderSingleGame(g, statKeys, statLabels) {
       '<div style="display:flex;align-items:center;gap:12px">' +
         '<img class="team-logo" src="/logo/' + g.away_team.toLowerCase() + '?size=96" alt=""' +
           ' style="width:96px;height:96px">' +
-        '<span style="font-size:36px;font-weight:bold;min-width:60px;text-align:right">' + g.away_team + '</span>' +
+        '<div style="text-align:right">' +
+          '<span style="font-size:36px;font-weight:bold">' + g.away_team + '</span>' +
+          (g.away_record ? '<div style="font-size:14px">' + g.away_record + '</div>' : '') +
+        '</div>' +
         awayPoss +
       '</div>' +
       '<div style="display:flex;align-items:center;gap:10px">' +
@@ -751,7 +812,10 @@ function renderSingleGame(g, statKeys, statLabels) {
       '</div>' +
       '<div style="display:flex;align-items:center;gap:12px">' +
         homePoss +
-        '<span style="font-size:36px;font-weight:bold;min-width:60px;text-align:left">' + g.home_team + '</span>' +
+        '<div style="text-align:left">' +
+          '<span style="font-size:36px;font-weight:bold">' + g.home_team + '</span>' +
+          (g.home_record ? '<div style="font-size:14px">' + g.home_record + '</div>' : '') +
+        '</div>' +
         '<img class="team-logo" src="/logo/' + g.home_team.toLowerCase() + '?size=96" alt=""' +
           ' style="width:96px;height:96px">' +
       '</div>' +
@@ -765,7 +829,8 @@ function renderSingleGame(g, statKeys, statLabels) {
 }
 
 function renderGames(payload) {
-  const { preset, games, stat_keys, stat_labels } = payload;
+  const { preset, games, stat_keys, stat_labels, week_label } = payload;
+  weekLabelEl.textContent = week_label || '';
 
   if (!games.length) {
     gamesEl.innerHTML = '<div class="no-games">No games scheduled</div>';

@@ -4,4 +4,6 @@ logos/dithered/
 .playwright-mcp/
 *.png
 !logos/*.png
+design_plan.md.md
+scorecard_presets_plan.md
 .claude/

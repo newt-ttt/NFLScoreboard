@@ -51,4 +51,3 @@ Notes
   so you can test the layout without waiting for the season.
 - The display is locked to 800x480 pixels with a black/white/red color palette
   to match the target e-ink hardware.
-- Press Ctrl+C in the terminal to stop the server.

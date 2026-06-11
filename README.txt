@@ -1,4 +1,4 @@
-NFL Scoreboard - Browser Prototype
+NFL Scoreboard - E-ink Display Final Version
 ===================================
 
 Requirements
